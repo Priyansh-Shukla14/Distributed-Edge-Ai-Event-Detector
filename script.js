@@ -1,6 +1,16 @@
 // Ensure script runs after the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
 
+    // 0. Logout Logic
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            sessionStorage.removeItem('isAuthenticated');
+            window.location.href = 'index.html';
+        });
+    }
+
     // 1. Initialize Mini Waveforms for Node Cards
     const waveforms = document.querySelectorAll('.waveform-mini');
     if (waveforms.length > 0) {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edge-AI Acoustic Event Detection - Topology</title>
+    <title>Edge-AI Acoustic Event Detection - Home</title>
     <script>
         if (sessionStorage.getItem('isAuthenticated') !== 'true') {
             window.location.href = 'index.html';
@@ -11,9 +11,6 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <style>
-        body { padding-top: 100px; }
-    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -28,22 +25,12 @@
         </ul>
     </nav>
 
-    <!-- Network Topology Visualization -->
-    <section id="topology" class="section container">
-        <h2 class="section-title">Network Topology</h2>
-        <div class="glass-card topology-container">
-            <div class="topo-nodes-wrapper">
-                <div class="topo-node">Node Alpha</div>
-                <div class="topo-node">Node Beta</div>
-            </div>
-            
-            <div class="topo-line-container">
-                <!-- Animated Packets Simulating Data Routing -->
-                <div class="topo-packet"></div>
-                <div class="topo-packet packet-delay"></div>
-            </div>
-            
-            <div class="topo-server">Web<br>Dashboard</div>
+    <section id="hero" class="section hero-section">
+        <div class="hero-content">
+            <h1 class="glitch-text" data-text="Distributed Edge-AI Acoustic Event Detection">Distributed Edge-AI Acoustic Event Detection</h1>
+            <p class="subtitle">with Adaptive Routing and Web Monitoring Platform</p>
+            <p class="description">An intelligent IoT network deployed at the edge to detect dangerous environmental sounds like glass breaking, explosions, and vehicle crashes in real-time.</p>
+            <a href="monitoring.html" class="cta-button">View Live Dashboard</a>
         </div>
     </section>
 

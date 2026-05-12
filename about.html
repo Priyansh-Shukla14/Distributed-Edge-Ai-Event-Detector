@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edge-AI Acoustic Event Detection - About</title>
+    <script>
+        if (sessionStorage.getItem('isAuthenticated') !== 'true') {
+            window.location.href = 'index.html';
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
@@ -15,12 +20,12 @@
     <nav class="navbar">
         <div class="logo">Acoustic<span>Edge</span></div>
         <ul class="nav-links">
-            <li><a href="index.html">Home</a></li>
+            <li><a href="home.html">Home</a></li>
             <li><a href="about.html">About</a></li>
             <li><a href="architecture.html">Architecture</a></li>
             <li><a href="monitoring.html">Live Nodes</a></li>
             <li><a href="topology.html">Topology</a></li>
-            <li><a href="login.html" style="color: var(--neon-blue); border: 1px solid var(--neon-blue); padding: 5px 15px; border-radius: 20px;">System Login</a></li>
+            <li><a href="#" id="logout-btn" style="color: var(--neon-red); border: 1px solid var(--neon-red); padding: 5px 15px; border-radius: 20px;">Logout</a></li>
         </ul>
     </nav>
 
