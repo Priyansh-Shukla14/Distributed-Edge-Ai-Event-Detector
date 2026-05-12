@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Node (just in case you ever add npm packages later)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Temporary and Log files
+*.log

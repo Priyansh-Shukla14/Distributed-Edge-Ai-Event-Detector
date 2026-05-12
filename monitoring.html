@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge-AI Acoustic Event Detection - Live Nodes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding-top: 100px; }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <nav class="navbar">
+        <div class="logo">Acoustic<span>Edge</span></div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="monitoring.html">Live Nodes</a></li>
+            <li><a href="topology.html">Topology</a></li>
+        </ul>
+    </nav>
+
+    <!-- Live Node Monitoring -->
+    <section id="monitoring" class="section container">
+        <h2 class="section-title">Live Node Monitoring</h2>
+        <p class="section-subtitle">Demonstration Prototype running with 2 Active Sensing Nodes</p>
+        <div class="nodes-grid">
+            <!-- Node Alpha -->
+            <div class="glass-card node-card" id="node-1">
+                <div class="node-header">
+                    <h3>Node Alpha [ESP32-A]</h3>
+                    <div class="status-indicator online"></div>
+                </div>
+                <div class="node-stats">
+                    <p>Status: <span class="status-text text-neon-green">Online</span></p>
+                    <p>Last Event: <span class="highlight-text">Glass Break</span></p>
+                    <div class="confidence-bar-container">
+                        <p>Confidence: <span id="node1-conf-text">92%</span></p>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="node1-conf-fill" style="width: 92%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="waveform-mini"></div>
+            </div>
+
+            <!-- Node Beta -->
+            <div class="glass-card node-card" id="node-2">
+                <div class="node-header">
+                    <h3>Node Beta [ESP32-B]</h3>
+                    <div class="status-indicator online"></div>
+                </div>
+                <div class="node-stats">
+                    <p>Status: <span class="status-text text-neon-green">Online</span></p>
+                    <p>Last Event: <span class="highlight-text">Abnormal Industrial Noise</span></p>
+                    <div class="confidence-bar-container">
+                        <p>Confidence: <span id="node2-conf-text">88%</span></p>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="node2-conf-fill" style="width: 88%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="waveform-mini"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Event Timeline -->
+    <section id="timeline" class="section container">
+        <h2 class="section-title">Event Timeline</h2>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-dot warning"></div>
+                <div class="timeline-content glass-card">
+                    <h4>Glass Break Detected</h4>
+                    <p class="time">10:42:05 AM | Node Alpha</p>
+                    <p>High-frequency acoustic signature matching shattered glass profile.</p>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot danger"></div>
+                <div class="timeline-content glass-card">
+                    <h4>Explosion Alert</h4>
+                    <p class="time">09:15:22 AM | Node Beta</p>
+                    <p>Sudden high-amplitude shockwave sound classified as hazardous explosion.</p>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot alert"></div>
+                <div class="timeline-content glass-card">
+                    <h4>Vehicle Crash Warning</h4>
+                    <p class="time">08:05:10 AM | Node Alpha</p>
+                    <p>Metallic crunch and prolonged friction noise typical of a vehicle collision.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 AcousticEdge. Distributed Edge-AI Acoustic Event Detection Network.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge-AI Acoustic Event Detection - Architecture</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding-top: 100px; }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <nav class="navbar">
+        <div class="logo">Acoustic<span>Edge</span></div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="monitoring.html">Live Nodes</a></li>
+            <li><a href="topology.html">Topology</a></li>
+        </ul>
+    </nav>
+
+    <!-- System Architecture Flow -->
+    <section id="architecture" class="section container">
+        <h2 class="section-title">System Architecture</h2>
+        
+        <!-- Visual Flow Diagram -->
+        <div class="architecture-flow" style="margin-bottom: 60px;">
+            <div class="flow-step">ESP32 Node</div>
+            <div class="flow-arrow">➔</div>
+            <div class="flow-step">Audio Processing</div>
+            <div class="flow-arrow">➔</div>
+            <div class="flow-step">ML Model</div>
+            <div class="flow-arrow">➔</div>
+            <div class="flow-step">Event Detection</div>
+            <div class="flow-arrow">➔</div>
+            <div class="flow-step">Adaptive Routing</div>
+            <div class="flow-arrow">➔</div>
+            <div class="flow-step">Backend API</div>
+            <div class="flow-arrow">➔</div>
+            <div class="flow-step">Web Dashboard</div>
+        </div>
+
+        <!-- Detailed Breakdown Grid -->
+        <h3 class="section-subtitle" style="color: var(--neon-blue); text-align: left; margin-bottom: 20px; font-family: var(--font-heading);">Architecture Breakdown</h3>
+        <div class="features-grid">
+            <div class="glass-card feature-card">
+                <h3>1. ESP32 Edge Node</h3>
+                <p>Equipped with an I2S microphone, this IoT node continuously captures surrounding environmental sounds directly at the source.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <h3>2. Audio Processing</h3>
+                <p>The raw audio is converted into spectrograms or MFCC features. It filters out normal background noise to prepare for ML analysis.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <h3>3. ML Model Inference</h3>
+                <p>A highly optimized, lightweight TensorFlow Lite model runs directly on the ESP32 microcontroller, avoiding cloud latency.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <h3>4. Event Detection</h3>
+                <p>The system classifies the sound (e.g., Glass Break, Explosion, Crash) and assigns a confidence percentage to minimize false alarms.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <h3>5. Adaptive Routing</h3>
+                <p>Alerts are sent through a smart mesh network. If an intermediary node is damaged or offline, the data automatically finds a new path.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <h3>6. Web Dashboard</h3>
+                <p>The backend API securely receives the alert metadata and instantly updates this Web Monitoring Platform for immediate human action.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 AcousticEdge. Distributed Edge-AI Acoustic Event Detection Network.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

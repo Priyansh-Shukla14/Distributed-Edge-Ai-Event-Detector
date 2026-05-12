@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge-AI Acoustic Event Detection - About</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Small fix to push content below fixed navbar on subpages */
+        body { padding-top: 100px; }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <nav class="navbar">
+        <div class="logo">Acoustic<span>Edge</span></div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="monitoring.html">Live Nodes</a></li>
+            <li><a href="topology.html">Topology</a></li>
+        </ul>
+    </nav>
+
+    <!-- About Section -->
+    <section id="about" class="section container">
+        <h2 class="section-title">About the Project</h2>
+        <div class="glass-card about-card">
+            <p>Our distributed edge AI acoustic monitoring system places intelligent sensing directly at the source. Instead of sending raw audio to the cloud, our ESP32 IoT nodes process and classify sounds locally using optimized Machine Learning models.</p>
+            <p>This approach ensures real-time alert generation, preserves privacy, and significantly reduces network load. With our adaptive routing protocol, critical alerts seamlessly navigate the network and reach the web monitoring platform instantly.</p>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section container">
+        <h2 class="section-title">Core Features</h2>
+        <div class="features-grid">
+            <div class="glass-card feature-card">
+                <h3>Real-Time Monitoring</h3>
+                <p>Instantaneous acoustic analysis and classification for immediate threat detection.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <h3>Edge AI Inference</h3>
+                <p>Neural networks and classification models running directly on microcontrollers.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <h3>Adaptive Routing</h3>
+                <p>Self-healing network paths guarantee alert delivery even if an intermediary node drops.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <h3>Reduced Network Load</h3>
+                <p>Only event metadata is transmitted (no heavy audio streams), preserving bandwidth.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section id="team" class="section container">
+        <h2 class="section-title">Project Team</h2>
+        <div class="team-grid">
+            <div class="glass-card team-card">
+                <div class="avatar avatar-1"></div>
+                <h3>Team Member 1</h3>
+                <p>IoT & Edge AI Engineer</p>
+            </div>
+            <div class="glass-card team-card">
+                <div class="avatar avatar-2"></div>
+                <h3>Team Member 2</h3>
+                <p>Full Stack & Network Dev</p>
+            </div>
+            <div class="glass-card team-card">
+                <div class="avatar avatar-3"></div>
+                <h3>Team Member 3</h3>
+                <p>Machine Learning Researcher</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 AcousticEdge. Distributed Edge-AI Acoustic Event Detection Network.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
