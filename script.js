@@ -11,6 +11,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 0.5 Mobile Navbar Toggle
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.querySelector('.nav-links');
+    if (hamburger && navLinks) {
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        });
+    }
+
     // 1. Initialize Mini Waveforms for Node Cards
     const waveforms = document.querySelectorAll('.waveform-mini');
     if (waveforms.length > 0) {
