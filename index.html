@@ -112,7 +112,7 @@
     <script>
         // Auto-redirect if already logged in
         if (sessionStorage.getItem('isAuthenticated') === 'true') {
-            window.location.href = 'monitoring.html';
+            window.location.href = 'home.html';
         }
 
         document.getElementById('login-form').addEventListener('submit', function(e) {
@@ -123,7 +123,7 @@
             // Dummy authentication for demonstration
             if(user === 'admin' && pass === 'admin123') {
                 sessionStorage.setItem('isAuthenticated', 'true');
-                window.location.href = 'monitoring.html';
+                window.location.href = 'home.html';
             } else {
                 alert('Access Denied: Invalid Credentials. Please check the credentials provided with your system.');
             }

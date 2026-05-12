@@ -526,8 +526,20 @@ footer {
 
 /* ---- Responsive Design ---- */
 @media (max-width: 768px) {
-    .navbar { padding: 20px; }
-    .nav-links { display: none; } /* Simplified for mobile, hiding links */
+    .navbar { 
+        padding: 15px; 
+        flex-direction: column;
+        gap: 15px;
+    }
+    .nav-links { 
+        display: flex; 
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
+    .nav-links a {
+        font-size: 0.8rem;
+    }
     .glitch-text { font-size: 2rem; }
     .architecture-flow { flex-direction: column; }
     .flow-arrow { transform: rotate(90deg); margin: 10px 0; }
