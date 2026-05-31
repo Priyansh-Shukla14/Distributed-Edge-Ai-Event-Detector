@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edge-AI Acoustic Event Detection - Live Nodes</title>
+    <title>Edge-AI Acoustic Event Detection - Live Dashboard</title>
     <script>
         if (sessionStorage.getItem('isAuthenticated') !== 'true') {
             window.location.href = 'index.html';
@@ -13,6 +13,253 @@
     <link rel="stylesheet" href="style.css">
     <style>
         body { padding-top: 100px; }
+
+        /* ── Stats Bar ─────────────────────────────── */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        .stat-card .stat-value {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            color: var(--neon-blue);
+            text-shadow: 0 0 12px rgba(0, 243, 255, 0.5);
+        }
+        .stat-card .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 5px;
+        }
+
+        /* ── Node Cards (dynamic) ──────────────────── */
+        .nodes-grid {
+            margin-bottom: 50px;
+        }
+        .node-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .node-card.flash-alert::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 15px;
+            background: rgba(255, 0, 60, 0.15);
+            animation: flashFade 0.8s ease-out forwards;
+            pointer-events: none;
+        }
+        .node-card.flash-event::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 15px;
+            background: rgba(0, 243, 255, 0.12);
+            animation: flashFade 0.8s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes flashFade {
+            0%   { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Node status indicator colors */
+        .status-indicator.offline {
+            background-color: var(--neon-red);
+            box-shadow: 0 0 12px var(--neon-red);
+            animation: none;
+        }
+        .status-indicator.warning {
+            background-color: var(--neon-orange);
+            box-shadow: 0 0 12px var(--neon-orange);
+            animation: blink 1s infinite;
+        }
+        .node-empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        /* ── Live Events Table ─────────────────────── */
+        .events-table-wrapper {
+            overflow-x: auto;
+        }
+        .events-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .events-table thead th {
+            font-family: var(--font-heading);
+            font-size: 0.75rem;
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--glass-border);
+            white-space: nowrap;
+        }
+        .events-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            transition: background 0.3s;
+        }
+        .events-table tbody tr:hover {
+            background: rgba(0, 243, 255, 0.05);
+        }
+        .events-table tbody tr.new-row {
+            animation: rowSlideIn 0.5s ease-out;
+        }
+        .events-table tbody td {
+            padding: 12px 15px;
+            color: var(--text-main);
+            white-space: nowrap;
+        }
+        .events-table .event-icon {
+            font-size: 1.2rem;
+        }
+        .events-table .event-type-label {
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        .events-table .conf-high {
+            color: var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+        .events-table .conf-mid {
+            color: var(--neon-orange);
+        }
+        .events-table .conf-low {
+            color: var(--text-muted);
+        }
+        .events-table .route-path {
+            font-family: var(--font-heading);
+            font-size: 0.7rem;
+            color: var(--neon-purple);
+            letter-spacing: 0.5px;
+        }
+        .events-table .resolved-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-family: var(--font-heading);
+        }
+        .resolved-badge.resolved-yes {
+            background: rgba(0, 255, 102, 0.15);
+            color: var(--neon-green);
+            border: 1px solid rgba(0, 255, 102, 0.3);
+        }
+        .resolved-badge.resolved-no {
+            background: rgba(255, 0, 60, 0.1);
+            color: var(--neon-red);
+            border: 1px solid rgba(255, 0, 60, 0.2);
+        }
+        @keyframes rowSlideIn {
+            0%   { opacity: 0; transform: translateY(-15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .table-empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .table-empty-state .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        /* ── Connection Status Pill ────────────────── */
+        .realtime-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 16px;
+            border-radius: 20px;
+            font-family: var(--font-heading);
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+        }
+        .realtime-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .realtime-status.connected {
+            background: rgba(0, 255, 102, 0.1);
+            border: 1px solid rgba(0, 255, 102, 0.3);
+            color: var(--neon-green);
+        }
+        .realtime-status.connected .dot {
+            background: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+            animation: blink 2s infinite;
+        }
+        .realtime-status.disconnected {
+            background: rgba(255, 0, 60, 0.1);
+            border: 1px solid rgba(255, 0, 60, 0.3);
+            color: var(--neon-red);
+        }
+        .realtime-status.disconnected .dot {
+            background: var(--neon-red);
+            box-shadow: 0 0 8px var(--neon-red);
+        }
+
+        /* ── Last Sync Counter ───────────────────────── */
+        .sync-counter {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            border-radius: 16px;
+            font-family: var(--font-heading);
+            font-size: 0.65rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-left: 12px;
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            color: var(--neon-blue);
+            transition: all 0.4s ease;
+            vertical-align: middle;
+        }
+        .sync-counter.sync-warn {
+            background: rgba(255, 170, 0, 0.1);
+            border-color: rgba(255, 170, 0, 0.35);
+            color: var(--neon-orange);
+        }
+        .sync-counter.sync-error {
+            background: rgba(255, 0, 60, 0.1);
+            border-color: rgba(255, 0, 60, 0.3);
+            color: var(--neon-red);
+        }
+
+        /* ── Node card status-change pulse ────────────── */
+        @keyframes statusPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.4); }
+            70%  { box-shadow: 0 0 0 12px rgba(0, 243, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0); }
+        }
+        .node-card.status-pulse {
+            animation: statusPulse 0.8s ease-out;
+        }
+
+        /* ── Node subtitle (last seen / never connected) ── */
+        .node-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -33,84 +280,76 @@
         </ul>
     </nav>
 
-    <!-- Live Node Monitoring -->
+    <!-- ── Stats Overview ─────────────────────────── -->
     <section id="monitoring" class="section container">
-        <h2 class="section-title">Live Node Monitoring</h2>
-        <p class="section-subtitle">Demonstration Prototype running with 2 Active Sensing Nodes</p>
-        <div class="nodes-grid">
-            <!-- Node Alpha -->
-            <div class="glass-card node-card" id="node-1">
-                <div class="node-header">
-                    <h3>Node Alpha [ESP32-A]</h3>
-                    <div class="status-indicator online"></div>
-                </div>
-                <div class="node-stats">
-                    <p>Status: <span class="status-text text-neon-green">Online</span></p>
-                    <p>Last Event: <span class="highlight-text">Glass Break</span></p>
-                    <div class="confidence-bar-container">
-                        <p>Confidence: <span id="node1-conf-text">92%</span></p>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" id="node1-conf-fill" style="width: 92%;"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="waveform-mini"></div>
+        <h2 class="section-title">Live Dashboard</h2>
+        <div style="text-align: center;">
+            <div class="realtime-status disconnected" id="realtime-status">
+                <span class="dot"></span>
+                <span id="realtime-label">Connecting…</span>
             </div>
+            <span class="sync-counter" id="sync-counter">Last sync: —</span>
+        </div>
 
-            <!-- Node Beta -->
-            <div class="glass-card node-card" id="node-2">
-                <div class="node-header">
-                    <h3>Node Beta [ESP32-B]</h3>
-                    <div class="status-indicator online"></div>
-                </div>
-                <div class="node-stats">
-                    <p>Status: <span class="status-text text-neon-green">Online</span></p>
-                    <p>Last Event: <span class="highlight-text">Abnormal Industrial Noise</span></p>
-                    <div class="confidence-bar-container">
-                        <p>Confidence: <span id="node2-conf-text">88%</span></p>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" id="node2-conf-fill" style="width: 88%;"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="waveform-mini"></div>
+        <div class="stats-bar">
+            <div class="glass-card stat-card">
+                <div class="stat-value" id="stat-total-events">—</div>
+                <div class="stat-label">Total Events</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-value" id="stat-active-nodes">—</div>
+                <div class="stat-label">Active Nodes</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-value" id="stat-24h-events">—</div>
+                <div class="stat-label">Last 24 h</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-value" id="stat-alerts">—</div>
+                <div class="stat-label">High-Conf Alerts</div>
+            </div>
+        </div>
+
+        <!-- ── Node Cards (populated dynamically) ──── -->
+        <h2 class="section-title" style="font-size:1.4rem; margin-bottom:25px;">Node Status</h2>
+        <div class="nodes-grid" id="nodes-grid">
+            <div class="glass-card node-empty-state">
+                <p>Loading node data…</p>
             </div>
         </div>
     </section>
 
-    <!-- Event Timeline -->
-    <section id="timeline" class="section container">
-        <h2 class="section-title">Event Timeline</h2>
-        <div class="timeline">
-            <div class="timeline-item">
-                <div class="timeline-dot warning"></div>
-                <div class="timeline-content glass-card">
-                    <h4>Glass Break Detected</h4>
-                    <p class="time">10:42:05 AM | Node Alpha</p>
-                    <p>High-frequency acoustic signature matching shattered glass profile.</p>
-                </div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-dot danger"></div>
-                <div class="timeline-content glass-card">
-                    <h4>Explosion Alert</h4>
-                    <p class="time">09:15:22 AM | Node Beta</p>
-                    <p>Sudden high-amplitude shockwave sound classified as hazardous explosion.</p>
-                </div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-dot alert"></div>
-                <div class="timeline-content glass-card">
-                    <h4>Vehicle Crash Warning</h4>
-                    <p class="time">08:05:10 AM | Node Alpha</p>
-                    <p>Metallic crunch and prolonged friction noise typical of a vehicle collision.</p>
-                </div>
+    <!-- ── Live Events Feed ───────────────────────── -->
+    <section id="events-feed" class="section container" style="padding-top: 0;">
+        <h2 class="section-title" style="font-size:1.4rem; margin-bottom:25px;">Live Event Feed</h2>
+        <div class="glass-card events-table-wrapper">
+            <table class="events-table" id="events-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Event Type</th>
+                        <th>Node</th>
+                        <th>Confidence</th>
+                        <th>Route Path</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="events-tbody">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+            <div class="table-empty-state" id="events-empty-state">
+                <div class="empty-icon">📡</div>
+                <p>Waiting for acoustic events…</p>
+                <p style="font-size:0.8rem; margin-top:8px;">Events will appear here in real-time via Supabase.</p>
             </div>
         </div>
     </section>
 
-
-
+    <!-- ── Supabase Client (public anon key — safe for browser) ── -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

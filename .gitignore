@@ -12,5 +12,9 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
+# Environment secrets
+.env
+config.js
+
 # Temporary and Log files
 *.log

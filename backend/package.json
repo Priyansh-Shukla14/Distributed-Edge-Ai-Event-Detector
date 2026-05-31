@@ -1,0 +1,20 @@
+{
+  "name": "edge-ai-acoustic-backend",
+  "version": "1.0.0",
+  "description": "Backend server for Distributed Edge-AI Acoustic Event Detection Network",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "simulate": "node scripts/simulateNodes.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mqtt": "^5.10.0"
+  },
+  "keywords": ["edge-ai", "acoustic", "mqtt", "supabase", "iot"],
+  "license": "ISC"
+}
