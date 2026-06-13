@@ -39,7 +39,7 @@
             margin-top: 5px;
         }
 
-        /* ── Node Cards (dynamic) ──────────────────── */
+        /* ── Node Cards ───────────────────────────────── */
         .nodes-grid {
             margin-bottom: 50px;
         }
@@ -70,24 +70,186 @@
             100% { opacity: 0; }
         }
 
-        /* Node status indicator colors */
-        .status-indicator.offline {
-            background-color: var(--neon-red);
-            box-shadow: 0 0 12px var(--neon-red);
+        /* Node status dot */
+        .node-status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            transition: all 0.4s ease;
+        }
+        .node-status-dot.streaming {
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            animation: blink 1.5s infinite;
+        }
+        .node-status-dot.idle {
+            background: #555;
+            box-shadow: none;
             animation: none;
         }
-        .status-indicator.warning {
-            background-color: var(--neon-orange);
-            box-shadow: 0 0 12px var(--neon-orange);
-            animation: blink 1s infinite;
+
+        /* Node header row */
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 10px;
         }
-        .node-empty-state {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
+        .node-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .node-header h3 {
+            font-family: var(--font-heading);
+            font-size: 1rem;
+            color: var(--text-main);
+            letter-spacing: 1px;
         }
 
-        /* ── Live Events Table ─────────────────────── */
+        /* Detection info inside node card */
+        .node-detection {
+            margin-bottom: 12px;
+        }
+        .node-event-label {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+        .node-event-label.stored {
+            color: var(--neon-blue);
+            text-shadow: 0 0 14px rgba(0, 243, 255, 0.6);
+        }
+        .node-event-label.unstored {
+            color: var(--text-muted);
+            opacity: 0.5;
+            font-style: italic;
+            text-shadow: none;
+        }
+        .node-confidence {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .node-confidence span {
+            font-family: var(--font-heading);
+        }
+
+        /* ── Priority Badges ──────────────────────────── */
+        .priority-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-family: var(--font-heading);
+            font-size: 0.65rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .priority-critical {
+            background: rgba(255, 0, 60, 0.2);
+            color: var(--neon-red);
+            border: 1px solid rgba(255, 0, 60, 0.4);
+            text-shadow: 0 0 6px rgba(255, 0, 60, 0.5);
+        }
+        .priority-high {
+            background: rgba(255, 170, 0, 0.15);
+            color: var(--neon-orange);
+            border: 1px solid rgba(255, 170, 0, 0.35);
+            text-shadow: 0 0 6px rgba(255, 170, 0, 0.4);
+        }
+        .priority-medium {
+            background: rgba(255, 230, 0, 0.12);
+            color: #ffe600;
+            border: 1px solid rgba(255, 230, 0, 0.3);
+        }
+        .priority-low {
+            background: rgba(0, 150, 255, 0.12);
+            color: #4ea8ff;
+            border: 1px solid rgba(0, 150, 255, 0.3);
+        }
+        .priority-none {
+            background: rgba(150, 150, 150, 0.1);
+            color: #888;
+            border: 1px solid rgba(150, 150, 150, 0.25);
+        }
+
+        /* ── Waveform (5 bars) ────────────────────────── */
+        .waveform-5 {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            height: 36px;
+            gap: 4px;
+            margin-top: 16px;
+        }
+        .waveform-5 .w-bar {
+            width: 5px;
+            border-radius: 3px;
+            transition: background 0.4s, height 0.3s;
+        }
+        .waveform-5.active .w-bar {
+            background: var(--neon-blue);
+            animation: waveAnim5 0.8s infinite ease-in-out;
+        }
+        .waveform-5.idle .w-bar {
+            background: #333;
+            height: 6px !important;
+            animation: none;
+        }
+        @keyframes waveAnim5 {
+            0%, 100% { height: 8px; }
+            50%      { height: 32px; }
+        }
+
+        /* ── Live Events Table ─────────────────────────── */
+        .events-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-family: var(--font-heading);
+            font-size: 0.65rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            background: rgba(0, 243, 255, 0.08);
+            color: var(--neon-blue);
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+        .toggle-btn:hover {
+            background: rgba(0, 243, 255, 0.15);
+            border-color: rgba(0, 243, 255, 0.5);
+        }
+        .toggle-btn .toggle-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--neon-green);
+            box-shadow: 0 0 6px var(--neon-green);
+            transition: all 0.3s;
+        }
+        .toggle-btn.off .toggle-dot {
+            background: #555;
+            box-shadow: none;
+        }
+
         .events-table-wrapper {
             overflow-x: auto;
         }
@@ -98,18 +260,18 @@
         }
         .events-table thead th {
             font-family: var(--font-heading);
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--neon-blue);
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            padding: 12px 15px;
+            padding: 12px 14px;
             text-align: left;
             border-bottom: 1px solid var(--glass-border);
             white-space: nowrap;
         }
         .events-table tbody tr {
             border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            transition: background 0.3s;
+            transition: background 0.3s, opacity 0.3s;
         }
         .events-table tbody tr:hover {
             background: rgba(0, 243, 255, 0.05);
@@ -118,50 +280,63 @@
             animation: rowSlideIn 0.5s ease-out;
         }
         .events-table tbody td {
-            padding: 12px 15px;
+            padding: 10px 14px;
             color: var(--text-main);
             white-space: nowrap;
         }
-        .events-table .event-icon {
-            font-size: 1.2rem;
+
+        /* Stored vs unstored rows */
+        .events-table tbody tr.row-stored {
+            /* full brightness — neon glow on left border */
+            border-left: 3px solid var(--neon-blue);
         }
-        .events-table .event-type-label {
+        .events-table tbody tr.row-unstored {
+            opacity: 0.45;
+            border-left: 3px solid transparent;
+        }
+        .events-table tbody tr.row-unstored:hover {
+            opacity: 0.7;
+        }
+        .events-table tbody tr.row-ambient {
+            opacity: 0.35;
+            border-left: 3px solid transparent;
+        }
+
+        /* Hide low-confidence rows when toggled off */
+        .hide-low-conf .row-unstored,
+        .hide-low-conf .row-ambient {
+            display: none;
+        }
+
+        .low-conf-badge {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 8px;
+            font-size: 0.6rem;
+            font-family: var(--font-heading);
+            background: rgba(120, 120, 120, 0.2);
+            color: #777;
+            border: 1px solid rgba(120, 120, 120, 0.25);
+            letter-spacing: 0.5px;
+            margin-left: 6px;
+        }
+
+        .event-icon { font-size: 1.1rem; }
+        .event-type-label {
             font-weight: 600;
             text-transform: capitalize;
         }
-        .events-table .conf-high {
+        .conf-high {
             color: var(--neon-green);
             text-shadow: 0 0 5px var(--neon-green);
         }
-        .events-table .conf-mid {
+        .conf-mid {
             color: var(--neon-orange);
         }
-        .events-table .conf-low {
+        .conf-low {
             color: var(--text-muted);
         }
-        .events-table .route-path {
-            font-family: var(--font-heading);
-            font-size: 0.7rem;
-            color: var(--neon-purple);
-            letter-spacing: 0.5px;
-        }
-        .events-table .resolved-badge {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 10px;
-            font-size: 0.75rem;
-            font-family: var(--font-heading);
-        }
-        .resolved-badge.resolved-yes {
-            background: rgba(0, 255, 102, 0.15);
-            color: var(--neon-green);
-            border: 1px solid rgba(0, 255, 102, 0.3);
-        }
-        .resolved-badge.resolved-no {
-            background: rgba(255, 0, 60, 0.1);
-            color: var(--neon-red);
-            border: 1px solid rgba(255, 0, 60, 0.2);
-        }
+
         @keyframes rowSlideIn {
             0%   { opacity: 0; transform: translateY(-15px); }
             100% { opacity: 1; transform: translateY(0); }
@@ -177,45 +352,51 @@
             margin-bottom: 15px;
         }
 
-        /* ── Connection Status Pill ────────────────── */
-        .realtime-status {
+        /* ── Connection Status Pills ──────────────────── */
+        .connection-pills {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .conn-pill {
             display: inline-flex;
             align-items: center;
             gap: 8px;
             padding: 5px 16px;
             border-radius: 20px;
             font-family: var(--font-heading);
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             letter-spacing: 1px;
             text-transform: uppercase;
-            margin-bottom: 30px;
         }
-        .realtime-status .dot {
+        .conn-pill .dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
         }
-        .realtime-status.connected {
+        .conn-pill.connected {
             background: rgba(0, 255, 102, 0.1);
             border: 1px solid rgba(0, 255, 102, 0.3);
             color: var(--neon-green);
         }
-        .realtime-status.connected .dot {
+        .conn-pill.connected .dot {
             background: var(--neon-green);
             box-shadow: 0 0 8px var(--neon-green);
             animation: blink 2s infinite;
         }
-        .realtime-status.disconnected {
+        .conn-pill.disconnected {
             background: rgba(255, 0, 60, 0.1);
             border: 1px solid rgba(255, 0, 60, 0.3);
             color: var(--neon-red);
         }
-        .realtime-status.disconnected .dot {
+        .conn-pill.disconnected .dot {
             background: var(--neon-red);
             box-shadow: 0 0 8px var(--neon-red);
         }
 
-        /* ── Last Sync Counter ───────────────────────── */
         .sync-counter {
             display: inline-flex;
             align-items: center;
@@ -223,15 +404,13 @@
             padding: 4px 14px;
             border-radius: 16px;
             font-family: var(--font-heading);
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             letter-spacing: 0.8px;
             text-transform: uppercase;
-            margin-left: 12px;
             background: rgba(0, 243, 255, 0.08);
             border: 1px solid rgba(0, 243, 255, 0.2);
             color: var(--neon-blue);
             transition: all 0.4s ease;
-            vertical-align: middle;
         }
         .sync-counter.sync-warn {
             background: rgba(255, 170, 0, 0.1);
@@ -244,7 +423,7 @@
             color: var(--neon-red);
         }
 
-        /* ── Node card status-change pulse ────────────── */
+        /* ── Node card pulse ──────────────────────────── */
         @keyframes statusPulse {
             0%   { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.4); }
             70%  { box-shadow: 0 0 0 12px rgba(0, 243, 255, 0); }
@@ -253,12 +432,22 @@
         .node-card.status-pulse {
             animation: statusPulse 0.8s ease-out;
         }
-
-        /* ── Node subtitle (last seen / never connected) ── */
         .node-subtitle {
             font-size: 0.75rem;
             color: var(--text-muted);
             margin-top: 2px;
+        }
+
+        /* Status indicator colors (used by Supabase realtime) */
+        .status-indicator.offline {
+            background-color: var(--neon-red);
+            box-shadow: 0 0 12px var(--neon-red);
+            animation: none;
+        }
+        .status-indicator.warning {
+            background-color: var(--neon-orange);
+            box-shadow: 0 0 12px var(--neon-orange);
+            animation: blink 1s infinite;
         }
     </style>
 </head>
@@ -283,10 +472,16 @@
     <!-- ── Stats Overview ─────────────────────────── -->
     <section id="monitoring" class="section container">
         <h2 class="section-title">Live Dashboard</h2>
-        <div style="text-align: center;">
-            <div class="realtime-status disconnected" id="realtime-status">
+
+        <!-- Connection pills -->
+        <div class="connection-pills">
+            <div class="conn-pill disconnected" id="flask-status">
                 <span class="dot"></span>
-                <span id="realtime-label">Connecting…</span>
+                <span id="flask-label">Flask: Connecting…</span>
+            </div>
+            <div class="conn-pill disconnected" id="realtime-status">
+                <span class="dot"></span>
+                <span id="realtime-label">Supabase: Connecting…</span>
             </div>
             <span class="sync-counter" id="sync-counter">Last sync: —</span>
         </div>
@@ -310,19 +505,65 @@
             </div>
         </div>
 
-        <!-- ── Node Cards (populated dynamically) ──── -->
+        <!-- ── Node Cards (hardcoded for node_1 and node_2) ── -->
         <h2 class="section-title" style="font-size:1.4rem; margin-bottom:25px;">Node Status</h2>
         <div class="nodes-grid" id="nodes-grid">
-            <div class="glass-card node-empty-state">
-                <p>Loading node data…</p>
+            <!-- Node 1 -->
+            <div class="glass-card node-card" id="node-card-node_1">
+                <div class="node-header">
+                    <div class="node-header-left">
+                        <div class="node-status-dot idle" id="dot-node_1"></div>
+                        <h3>node_1</h3>
+                    </div>
+                    <span class="priority-badge priority-none" id="badge-node_1">—</span>
+                </div>
+                <div class="node-detection">
+                    <div class="node-event-label unstored" id="event-label-node_1">Waiting…</div>
+                    <div class="node-confidence" id="conf-node_1"></div>
+                </div>
+                <div class="waveform-5 idle" id="waveform-node_1">
+                    <div class="w-bar" style="animation-delay:0s"></div>
+                    <div class="w-bar" style="animation-delay:0.15s"></div>
+                    <div class="w-bar" style="animation-delay:0.3s"></div>
+                    <div class="w-bar" style="animation-delay:0.45s"></div>
+                    <div class="w-bar" style="animation-delay:0.6s"></div>
+                </div>
+            </div>
+
+            <!-- Node 2 -->
+            <div class="glass-card node-card" id="node-card-node_2">
+                <div class="node-header">
+                    <div class="node-header-left">
+                        <div class="node-status-dot idle" id="dot-node_2"></div>
+                        <h3>node_2</h3>
+                    </div>
+                    <span class="priority-badge priority-none" id="badge-node_2">—</span>
+                </div>
+                <div class="node-detection">
+                    <div class="node-event-label unstored" id="event-label-node_2">Waiting…</div>
+                    <div class="node-confidence" id="conf-node_2"></div>
+                </div>
+                <div class="waveform-5 idle" id="waveform-node_2">
+                    <div class="w-bar" style="animation-delay:0s"></div>
+                    <div class="w-bar" style="animation-delay:0.15s"></div>
+                    <div class="w-bar" style="animation-delay:0.3s"></div>
+                    <div class="w-bar" style="animation-delay:0.45s"></div>
+                    <div class="w-bar" style="animation-delay:0.6s"></div>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- ── Live Events Feed ───────────────────────── -->
     <section id="events-feed" class="section container" style="padding-top: 0;">
-        <h2 class="section-title" style="font-size:1.4rem; margin-bottom:25px;">Live Event Feed</h2>
-        <div class="glass-card events-table-wrapper">
+        <div class="events-controls">
+            <h2 class="section-title" style="font-size:1.4rem; margin-bottom:0; text-align:left;">Live Event Feed</h2>
+            <div class="toggle-btn" id="toggle-low-conf">
+                <span class="toggle-dot"></span>
+                <span>Show low confidence</span>
+            </div>
+        </div>
+        <div class="glass-card events-table-wrapper" id="events-table-wrapper">
             <table class="events-table" id="events-table">
                 <thead>
                     <tr>
@@ -330,7 +571,7 @@
                         <th>Event Type</th>
                         <th>Node</th>
                         <th>Confidence</th>
-                        <th>Route Path</th>
+                        <th>Priority</th>
                         <th>Time</th>
                         <th>Status</th>
                     </tr>
@@ -342,13 +583,14 @@
             <div class="table-empty-state" id="events-empty-state">
                 <div class="empty-icon">📡</div>
                 <p>Waiting for acoustic events…</p>
-                <p style="font-size:0.8rem; margin-top:8px;">Events will appear here in real-time via Supabase.</p>
+                <p style="font-size:0.8rem; margin-top:8px;">Events will appear here in real-time from Flask and Supabase.</p>
             </div>
         </div>
     </section>
 
-    <!-- ── Supabase Client (public anon key — safe for browser) ── -->
+    <!-- ── Scripts ── -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="config.js"></script>
     <script src="script.js"></script>
 </body>

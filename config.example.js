@@ -10,4 +10,7 @@ const CONFIG = {
 
   // Backend REST API base URL
   API_BASE_URL: 'http://localhost:3000/api',
+
+  // Flask inference server (Socket.IO for live detections)
+  FLASK_SERVER_URL: 'http://localhost:5000',
 };
