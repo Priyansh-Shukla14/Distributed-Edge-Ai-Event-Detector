@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const supabase = require('./config/supabase');
 const mqttService = require('./services/mqttService');
+const flaskBridgeService = require('./services/flaskBridgeService');
 const nodeHealthService = require('./services/nodeHealthService');
 const eventsRouter = require('./routes/events');
 const nodesRouter = require('./routes/nodes');
@@ -62,7 +63,10 @@ async function boot() {
   // 3. Start MQTT subscription
   mqttService.init();
 
-  // 4. Start Express
+  // 4. Connect to Flask inference server
+  flaskBridgeService.init();
+
+  // 5. Start Express
   app.listen(PORT, () => {
     console.log(`[Express] ✔  Server listening on http://localhost:${PORT}`);
     console.log('');
