@@ -18,3 +18,7 @@ config.js
 
 # Temporary and Log files
 *.log
+
+# Python
+venv/
+__pycache__/
