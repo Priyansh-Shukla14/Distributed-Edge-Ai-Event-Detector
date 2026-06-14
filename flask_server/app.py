@@ -21,7 +21,7 @@ from collections import deque
 from datetime import datetime, timezone
 
 import numpy as np
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
 
 from audio_buffer import AudioBuffer, BUFFER_SIZE, SAMPLE_RATE
@@ -76,6 +76,9 @@ STORE_CONFIDENCE_THRESHOLD = 0.85
 #    confidence) so the REST API can serve them instantly ───────
 recent_detections: deque[dict] = deque(maxlen=50)
 
+# ── Counters for throttled audio-reception logging ────────────
+_audio_chunk_count: dict[str, int] = {nid: 0 for nid in KNOWN_NODES}
+
 
 
 
@@ -101,12 +104,24 @@ def get_detections():
 
 @socketio.on("connect")
 def on_connect():
-    log.info("Client connected")
+    node_id = request.args.get("node_id")
+    log.info("Client connected — args: %s  sid: %s", dict(request.args), request.sid)
+    if node_id and node_id in buffers:
+        upsert_node_status(node_id)
+        log.info("[NODE ONLINE] %s connected", node_id)
 
 
 @socketio.on("disconnect")
 def on_disconnect():
     log.info("Client disconnected")
+
+
+@socketio.on("node_online")
+def on_node_online(data: dict):
+    node_id = data.get("node_id")
+    if node_id and node_id in buffers:
+        upsert_node_status(node_id)
+        log.info("[NODE ONLINE] %s marked active", node_id)
 
 
 @socketio.on("audio_stream")
@@ -146,9 +161,17 @@ def on_audio_stream(data: dict):
 
     samples = np.frombuffer(raw_bytes, dtype=np.int16)
 
+    # ── Throttled INFO log: confirm audio is arriving ─────────
+    _audio_chunk_count[node_id] = _audio_chunk_count.get(node_id, 0) + 1
+    if _audio_chunk_count[node_id] % 8 == 1:   # ~every 2s of audio
+        peak = int(np.abs(samples.astype(np.int32)).max()) if samples.size else 0
+        log.info("[AUDIO] %s  chunk #%d  (%d samples, peak %d)",
+                 node_id, _audio_chunk_count[node_id], samples.size, peak)
+
     # ── 3. Write into ring buffer ─────────────────────────────
     buf = buffers[node_id]
     buf.write(samples)
+    upsert_node_status(node_id)   # mark node online on every audio chunk
 
     log.debug(
         "%s: wrote %d samples  %s",

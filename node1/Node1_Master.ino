@@ -32,9 +32,9 @@
 // ║            *** EDIT THESE FOR YOUR SETUP ***                            ║
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
-const char* WIFI_SSID     = "sehore";
+const char* WIFI_SSID     = "Sehore";
 const char* WIFI_PASSWORD = "sanidhya";
-const char* SERVER_HOST   = "10.239.84.1";
+const char* SERVER_HOST   = "10.239.84.37";
 const int   SERVER_PORT   = 5000;
 const char* NODE_ID       = "node_1";
 
@@ -292,6 +292,8 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t* payload, size_t length) 
     case sIOtype_CONNECT:
       Serial.printf("[SIO] Connected to %s:%d\n", SERVER_HOST, SERVER_PORT);
       serverConnected = true;
+      // Announce this node so the server marks it online immediately
+      socketIO.sendEVENT("[\"node_online\",{\"node_id\":\"" + String(NODE_ID) + "\"}]");
       // Quick LED blink to confirm connection
       digitalWrite(LED_PIN, HIGH);
       delay(200);
@@ -479,7 +481,9 @@ void setup() {
   setupMPU();
 
   // --- SocketIO ---
-  socketIO.begin(SERVER_HOST, SERVER_PORT, "/socket.io/?EIO=4");
+  String sioPath = "/socket.io/?EIO=4&node_id=";
+  sioPath += NODE_ID;
+  socketIO.begin(SERVER_HOST, SERVER_PORT, sioPath.c_str());
   socketIO.onEvent(socketIOEvent);
   socketIO.setReconnectInterval(SIO_RECONNECT_MS);
   Serial.printf("[SIO] Connecting to %s:%d ...\n", SERVER_HOST, SERVER_PORT);

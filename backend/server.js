@@ -4,6 +4,7 @@
 
 require('dotenv').config();
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const supabase = require('./config/supabase');
@@ -20,6 +21,9 @@ const PORT = process.env.PORT || 3000;
 // ── Middleware ────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
+
+// ── Static frontend ───────────────────────────────────────
+app.use(express.static(path.join(__dirname, '..')));
 
 // ── Routes ───────────────────────────────────────────────
 app.use('/api/events', eventsRouter);
