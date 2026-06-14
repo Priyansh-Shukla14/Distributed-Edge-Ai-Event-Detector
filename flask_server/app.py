@@ -124,6 +124,16 @@ def on_node_online(data: dict):
         log.info("[NODE ONLINE] %s marked active", node_id)
 
 
+@socketio.on("ping_test")
+def on_ping_test(data):
+    log.info("[PING TEST] Received from ESP32! data=%s", data)
+
+
+@socketio.on("*")
+def catch_all(event, *args):
+    log.info("[CATCH-ALL] event=%s  data_preview=%s", event, str(args)[:200])
+
+
 @socketio.on("audio_stream")
 def on_audio_stream(data: dict):
     """
@@ -173,7 +183,7 @@ def on_audio_stream(data: dict):
     buf.write(samples)
     upsert_node_status(node_id)   # mark node online on every audio chunk
 
-    log.debug(
+    log.info(
         "%s: wrote %d samples  %s",
         node_id,
         len(samples),

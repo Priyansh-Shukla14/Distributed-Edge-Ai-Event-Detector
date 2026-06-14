@@ -20,7 +20,7 @@
  */
 
 #include <WiFi.h>
-#include <SocketIOclient.h>
+#include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 #include <driver/i2s.h>
 #include <Wire.h>
@@ -34,7 +34,7 @@
 
 const char* WIFI_SSID     = "Sehore";
 const char* WIFI_PASSWORD = "sanidhya";
-const char* SERVER_HOST   = "10.239.84.37";
+const char* SERVER_HOST   = "10.101.196.1";
 const int   SERVER_PORT   = 5000;
 const char* NODE_ID       = "node_1";
 
@@ -70,7 +70,7 @@ const char* NODE_ID       = "node_1";
 // ║                      TUNABLE THRESHOLDS                                 ║
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
-#define SOUND_THRESHOLD  1500   // Raw int16 amplitude (0 – 32767), local fast-path
+#define SOUND_THRESHOLD  8000   // Raw int16 amplitude (0 – 32767), local fast-path
 #define SMOKE_THRESHOLD  2000   // ADC (0 – 4095), for SLAVE data via UART
 #define WATER_THRESHOLD  2000   // ADC (0 – 4095)
 #define QUAKE_THRESHOLD  1.5f   // g-force delta from rolling baseline
@@ -108,13 +108,14 @@ const char* NODE_ID       = "node_1";
 #define EMA_DECAY         0.95f
 #define WIFI_TIMEOUT_S    20
 #define SIO_RECONNECT_MS  5000
+#define STARTUP_GRACE_MS  15000  // No local buzzer for 15s — let SocketIO connect first
 
 // ╔═══════════════════════════════════════════════════════════════════════════╗
 // ║                        GLOBAL VARIABLES                                 ║
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
-// --- SocketIO ---
-SocketIOclient socketIO;
+// --- WebSocket (raw Socket.IO v4 protocol) ---
+WebSocketsClient webSocket;
 bool serverConnected = false;
 
 // --- Audio streaming buffers (static to avoid stack/heap fragmentation) ---
@@ -129,6 +130,8 @@ bool  baselineInit  = false;
 
 // --- Timing ---
 unsigned long lastSensorCheck = 0;
+unsigned long startupTime     = 0;
+unsigned long lastPing        = 0;  // For debug ping test
 
 // ╔═══════════════════════════════════════════════════════════════════════════╗
 // ║                          WiFi CONNECTION                                ║
@@ -230,12 +233,12 @@ void buzzAlert(const char* msg, int pulses) {
     digitalWrite(BUZZER_PIN, HIGH);
     digitalWrite(LED_PIN, HIGH);
     delay(ALERT_ON_MS);
-    socketIO.loop();   // Keep WebSocket alive during alert
+    webSocket.loop();   // Keep WebSocket alive during alert
 
     digitalWrite(BUZZER_PIN, LOW);
     digitalWrite(LED_PIN, LOW);
     delay(ALERT_OFF_MS);
-    socketIO.loop();
+    webSocket.loop();
   }
 }
 
@@ -286,62 +289,74 @@ void parseSlaveMessage(String line) {
 // ║                   SOCKETIO EVENT HANDLER                                ║
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
-void socketIOEvent(socketIOmessageType_t type, uint8_t* payload, size_t length) {
+// Handle raw WebSocket messages and implement Socket.IO v4 protocol manually
+void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
   switch (type) {
 
-    case sIOtype_CONNECT:
-      Serial.printf("[SIO] Connected to %s:%d\n", SERVER_HOST, SERVER_PORT);
-      serverConnected = true;
-      // Announce this node so the server marks it online immediately
-      socketIO.sendEVENT("[\"node_online\",{\"node_id\":\"" + String(NODE_ID) + "\"}]");
-      // Quick LED blink to confirm connection
-      digitalWrite(LED_PIN, HIGH);
-      delay(200);
-      digitalWrite(LED_PIN, LOW);
+    case WStype_CONNECTED:
+      Serial.println("[WS] WebSocket connected — waiting for SIO handshake");
       break;
 
-    case sIOtype_DISCONNECT:
+    case WStype_DISCONNECTED:
       Serial.println("[SIO] Disconnected from server");
       serverConnected = false;
       break;
 
-    case sIOtype_EVENT: {
-      // Payload looks like: ["detection_event",{"node_id":"node_1",...}]
-      DynamicJsonDocument doc(1024);
-      DeserializationError err = deserializeJson(doc, payload, length);
-      if (err) {
-        Serial.printf("[SIO] JSON parse error: %s\n", err.c_str());
-        break;
+    case WStype_TEXT: {
+      String msg = String((char*)payload);
+
+      // Engine.IO open packet: 0{"sid":"...","upgrades":[],...}
+      if (msg.startsWith("0{")) {
+        Serial.println("[EIO] Open packet received — sending SIO connect");
+        webSocket.sendTXT("40");  // Connect to default namespace
       }
-
-      const char* eventName = doc[0];
-      if (eventName && strcmp(eventName, "detection_event") == 0) {
-        JsonObject data    = doc[1];
-        const char* nodeId   = data["node_id"]        | "";
-        const char* evtType  = data["event_type"]      | "";
-        float confidence     = data["confidence"]      | 0.0f;
-        const char* priority = data["alert_priority"]  | "none";
-
-        Serial.printf("[ML] %s → %s (%.0f%%) priority=%s\n",
-                      nodeId, evtType, confidence * 100, priority);
-
-        // Trigger buzzer for non-background events
-        if (strcmp(priority, "none") != 0) {
-          alertForDetection(evtType, priority, confidence);
+      // Socket.IO connect confirmed: 40{"sid":"..."}
+      else if (msg.startsWith("40")) {
+        Serial.printf("[SIO] Connected to %s:%d\n", SERVER_HOST, SERVER_PORT);
+        serverConnected = true;
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        digitalWrite(LED_PIN, LOW);
+      }
+      // Engine.IO ping: 2 → respond with pong: 3
+      else if (msg == "2") {
+        webSocket.sendTXT("3");
+      }
+      // Socket.IO event: 42["event_name", {...}]
+      else if (msg.startsWith("42")) {
+        String eventData = msg.substring(2);
+        DynamicJsonDocument doc(1024);
+        DeserializationError err = deserializeJson(doc, eventData);
+        if (err) {
+          Serial.printf("[SIO] JSON parse error: %s\n", err.c_str());
+          break;
         }
+
+        const char* eventName = doc[0];
+        if (eventName && strcmp(eventName, "detection_event") == 0) {
+          JsonObject data    = doc[1];
+          const char* nodeId   = data["node_id"]        | "";
+          const char* evtType  = data["event_type"]      | "";
+          float confidence     = data["confidence"]      | 0.0f;
+          const char* priority = data["alert_priority"]  | "none";
+
+          Serial.printf("[ML] %s -> %s (%.0f%%) priority=%s\n",
+                        nodeId, evtType, confidence * 100, priority);
+
+          if (strcmp(priority, "none") != 0) {
+            alertForDetection(evtType, priority, confidence);
+          }
+        }
+      }
+      // Socket.IO disconnect: 41
+      else if (msg.startsWith("41")) {
+        serverConnected = false;
+        Serial.println("[SIO] Server sent disconnect");
       }
       break;
     }
 
-    case sIOtype_ACK:
-      break;
-
-    case sIOtype_ERROR:
-      Serial.printf("[SIO] Error: %s\n", payload ? (char*)payload : "unknown");
-      break;
-
-    case sIOtype_BINARY_EVENT:
-    case sIOtype_BINARY_ACK:
+    default:
       break;
   }
 }
@@ -375,7 +390,10 @@ void sendSubChunk(int16_t* samples, int numSamples) {
   payload += base64Buf;
   payload += "\"}]";
 
-  socketIO.sendEVENT(payload);
+  // Prepend "42" for Socket.IO event frame and send as raw WebSocket text
+  String frame = "42";
+  frame += payload;
+  webSocket.sendTXT(frame);
 }
 
 // Process a full 1-second buffer: local peak check + stream to server
@@ -386,9 +404,11 @@ void processAndStreamAudio() {
     int32_t v = abs((int32_t)streamBuf[i]);
     if (v > peak) peak = (int16_t)v;
   }
-  Serial.printf("[MASTER] Audio peak (1s): %d\n", peak);
+  Serial.printf("[MASTER] Audio peak (1s): %d  | SIO: %s\n",
+                peak, serverConnected ? "CONNECTED" : "waiting...");
 
-  if (peak > SOUND_THRESHOLD) {
+  // Only fire local buzzer after startup grace period
+  if (peak > SOUND_THRESHOLD && (millis() - startupTime > STARTUP_GRACE_MS)) {
     alert("LOUD SOUND - Master Mic");
   }
 
@@ -396,8 +416,8 @@ void processAndStreamAudio() {
   if (serverConnected) {
     for (int i = 0; i < 4; i++) {
       sendSubChunk(&streamBuf[i * STREAM_CHUNK_SAMPLES], STREAM_CHUNK_SAMPLES);
-      socketIO.loop();  // Handle incoming messages between chunks
-      delay(5);         // Brief yield for TCP stack
+      webSocket.loop();  // Handle incoming messages between chunks
+      delay(5);
     }
     Serial.println("[STREAM] Sent 1s audio (4 chunks)");
   }
@@ -434,7 +454,7 @@ void checkSensors() {
     accelBaseline = EMA_DECAY * accelBaseline + (1.0f - EMA_DECAY) * accelMag;
     float delta = fabsf(accelMag - accelBaseline);
     Serial.printf("[MASTER] Accel: %.3fg (Δ%.3f)\n", accelMag, delta);
-    if (delta > QUAKE_THRESHOLD) {
+    if (delta > QUAKE_THRESHOLD && (millis() - startupTime > STARTUP_GRACE_MS)) {
       alert("EARTHQUAKE DETECTED");
     }
   }
@@ -442,7 +462,7 @@ void checkSensors() {
   // ── Water Level ──
   int waterVal = analogRead(WATER_PIN);
   Serial.printf("[MASTER] Water: %d\n", waterVal);
-  if (waterVal > WATER_THRESHOLD) {
+  if (waterVal > WATER_THRESHOLD && (millis() - startupTime > STARTUP_GRACE_MS)) {
     alert("WATER DETECTED");
   }
 }
@@ -480,13 +500,11 @@ void setup() {
   // --- MPU-6050 ---
   setupMPU();
 
-  // --- SocketIO ---
-  String sioPath = "/socket.io/?EIO=4&node_id=";
-  sioPath += NODE_ID;
-  socketIO.begin(SERVER_HOST, SERVER_PORT, sioPath.c_str());
-  socketIO.onEvent(socketIOEvent);
-  socketIO.setReconnectInterval(SIO_RECONNECT_MS);
-  Serial.printf("[SIO] Connecting to %s:%d ...\n", SERVER_HOST, SERVER_PORT);
+  // --- WebSocket (raw Socket.IO v4) ---
+  webSocket.begin(SERVER_HOST, SERVER_PORT, "/socket.io/?EIO=4&transport=websocket");
+  webSocket.onEvent(webSocketEvent);
+  webSocket.setReconnectInterval(SIO_RECONNECT_MS);
+  Serial.printf("[WS] Connecting to ws://%s:%d ...\n", SERVER_HOST, SERVER_PORT);
 
   // --- Startup self-test ---
   for (int i = 0; i < 3; i++) {
@@ -498,8 +516,9 @@ void setup() {
     delay(100);
   }
 
+  startupTime = millis();  // Record startup time for grace period
   Serial.println("--------------------------------------------");
-  Serial.println("  Entering main loop...");
+  Serial.printf("  Entering main loop (alerts disabled for %ds)\n", STARTUP_GRACE_MS / 1000);
   Serial.println("--------------------------------------------");
 }
 
@@ -508,15 +527,15 @@ void setup() {
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
 void loop() {
-  // ── 1. SocketIO — handle connection, pings, incoming events ──
-  socketIO.loop();
+  // ── 1. WebSocket — handle connection, pings, incoming events ──
+  webSocket.loop();
 
   // ── 2. WiFi reconnect if dropped ──
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[WiFi] Lost connection — reconnecting...");
     WiFi.reconnect();
     delay(1000);
-    return;  // Skip this loop iteration
+    return;
   }
 
   // ── 3. Accumulate I2S audio into stream buffer ──
