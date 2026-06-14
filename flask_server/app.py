@@ -79,6 +79,58 @@ recent_detections: deque[dict] = deque(maxlen=50)
 # ── Counters for throttled audio-reception logging ────────────
 _audio_chunk_count: dict[str, int] = {nid: 0 for nid in KNOWN_NODES}
 
+# ── Sensor alert thresholds ───────────────────────────────────
+WATER_LEVEL_FLOOD_THRESHOLD = 1500     # water_raw >= 1500 → flood
+EARTHQUAKE_ACCEL_THRESHOLD  = 1.3      # accel_g  >= 1.3  → earthquake
+
+# ── Cooldown tracking for sensor alerts (prevent DB spam) ─────
+#    key = (node_id, alert_type), value = last insert timestamp
+import time
+_sensor_alert_cooldowns: dict[tuple, float] = {}
+SENSOR_ALERT_COOLDOWN_SEC = 30  # one insert per 30 seconds per alert type
+
+
+def _sensor_alert_on_cooldown(node_id: str, alert_type: str) -> bool:
+    """Return True if this (node, alert_type) was inserted recently."""
+    key = (node_id, alert_type)
+    last = _sensor_alert_cooldowns.get(key, 0)
+    return (time.time() - last) < SENSOR_ALERT_COOLDOWN_SEC
+
+
+def _mark_sensor_alert(node_id: str, alert_type: str):
+    """Record that we just inserted a sensor alert."""
+    _sensor_alert_cooldowns[(node_id, alert_type)] = time.time()
+
+
+def _insert_sensor_alert(node_id: str, event_type: str, confidence: float):
+    """
+    Build and persist a sensor-triggered event (flood / earthquake)
+    to Supabase + broadcast to dashboards via detection_event.
+    """
+    now_iso = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "node_id":          node_id,
+        "event_type":       event_type,
+        "confidence":       confidence,
+        "alert_priority":   "critical",
+        "device_timestamp": now_iso,
+        "route_path":       [node_id, "gateway"],
+        "stored":           True,
+        "_flask_persisted":  True,   # tells Node.js bridge to skip re-inserting
+    }
+
+    # Broadcast to all dashboard clients
+    socketio.emit("detection_event", payload)
+
+    # Save to in-memory ring
+    recent_detections.append(payload)
+
+    # Persist to Supabase
+    insert_event(payload)
+    upsert_node_status(node_id)
+
+    log.info("[SENSOR → SUPABASE] ✔  %s event stored for %s (confidence %.2f)",
+             event_type.upper(), node_id, confidence)
 
 
 
@@ -135,6 +187,10 @@ def on_sensor_data(data: dict):
     Receives non-audio sensor telemetry from an ESP32 node and
     re-broadcasts it to all dashboard clients as "sensor_update".
 
+    Also checks sensor thresholds and inserts events into Supabase:
+      - water_raw >= 1500  → 'flood' event
+      - accel_g   >= 1.3   → 'earthquake' event
+
     Expected payload (all fields optional except node_id):
         {
             "node_id":     "node_1",
@@ -158,6 +214,25 @@ def on_sensor_data(data: dict):
 
     # Re-broadcast to dashboards
     socketio.emit("sensor_update", data)
+
+    # ── Threshold checks → insert events into Supabase ────────
+    # Flood: water_raw >= 1500
+    water_raw = data.get("water_raw")
+    if water_raw is not None and float(water_raw) >= WATER_LEVEL_FLOOD_THRESHOLD:
+        if not _sensor_alert_on_cooldown(node_id, "flood"):
+            _mark_sensor_alert(node_id, "flood")
+            _insert_sensor_alert(node_id, "flood", 1.0)
+            log.info("[FLOOD ALERT] %s water_raw=%s (threshold %d)",
+                     node_id, water_raw, WATER_LEVEL_FLOOD_THRESHOLD)
+
+    # Earthquake: accel_g >= 1.3
+    accel_g = data.get("accel_g")
+    if accel_g is not None and float(accel_g) >= EARTHQUAKE_ACCEL_THRESHOLD:
+        if not _sensor_alert_on_cooldown(node_id, "earthquake"):
+            _mark_sensor_alert(node_id, "earthquake")
+            _insert_sensor_alert(node_id, "earthquake", min(float(accel_g) / 2.0, 1.0))
+            log.info("[EARTHQUAKE ALERT] %s accel_g=%.2f (threshold %.1f)",
+                     node_id, float(accel_g), EARTHQUAKE_ACCEL_THRESHOLD)
 
     # Log alerts prominently
     alerts = []

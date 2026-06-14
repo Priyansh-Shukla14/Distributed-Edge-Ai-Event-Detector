@@ -30,6 +30,9 @@ function getEventIcon(type) {
     siren:               '🚨',
     dog:                 '🐕',
     background:          '🔇',
+    // Sensor-triggered types
+    flood:               '🌊',
+    earthquake:          '📳',
     // Legacy types (MQTT pipeline)
     explosion:           '💥',
     vehicle_crash:       '🚗',
@@ -51,6 +54,9 @@ function getEventLabel(type) {
     siren:               'Siren',
     dog:                 'Dog',
     background:          'Ambient',
+    // Sensor-triggered types
+    flood:               'Flood',
+    earthquake:          'Earthquake',
     // Legacy types
     explosion:           'Explosion',
     vehicle_crash:       'Vehicle Crash',
