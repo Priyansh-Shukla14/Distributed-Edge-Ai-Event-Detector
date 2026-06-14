@@ -34,7 +34,7 @@
 
 const char* WIFI_SSID     = "Sehore";
 const char* WIFI_PASSWORD = "sanidhya";
-const char* SERVER_HOST   = "10.101.196.1";
+const char* SERVER_HOST   = "10.239.84.37";
 const int   SERVER_PORT   = 5000;
 const char* NODE_ID       = "node_1";
 
@@ -132,6 +132,10 @@ bool  baselineInit  = false;
 unsigned long lastSensorCheck = 0;
 unsigned long startupTime     = 0;
 unsigned long lastPing        = 0;  // For debug ping test
+
+// --- Latest sensor readings (for telemetry to dashboard) ---
+int lastAudioPeak = 0;   // Latest 1s audio peak amplitude
+int lastSmokeVal  = 0;   // Latest smoke reading from SLAVE (via UART)
 
 // ╔═══════════════════════════════════════════════════════════════════════════╗
 // ║                          WiFi CONNECTION                                ║
@@ -280,6 +284,7 @@ void parseSlaveMessage(String line) {
     Serial.printf("[SLAVE] Audio: %d\n", value);
     if (value > SOUND_THRESHOLD) alert("LOUD SOUND - Slave Mic");
   } else if (key == "SMOKE") {
+    lastSmokeVal = value;   // remember for sensor telemetry
     Serial.printf("[SLAVE] Smoke: %d\n", value);
     if (value > SMOKE_THRESHOLD) alert("SMOKE DETECTED - Slave");
   }
@@ -404,6 +409,7 @@ void processAndStreamAudio() {
     int32_t v = abs((int32_t)streamBuf[i]);
     if (v > peak) peak = (int16_t)v;
   }
+  lastAudioPeak = peak;   // remember for sensor telemetry
   Serial.printf("[MASTER] Audio peak (1s): %d  | SIO: %s\n",
                 peak, serverConnected ? "CONNECTED" : "waiting...");
 
@@ -443,28 +449,58 @@ void readI2SIntoBuffer() {
 // ║                        SENSOR CHECKS                                    ║
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
+// Emit a "sensor_data" Socket.IO event with the full telemetry frame.
+// Format: 42["sensor_data",{...}]
+void sendSensorData(float accelG, float accelDelta, bool quake,
+                    int waterRaw, bool waterAlert,
+                    int smokeRaw, bool smokeAlert) {
+  if (!serverConnected) return;
+
+  String f = "42[\"sensor_data\",{";
+  f += "\"node_id\":\"";    f += NODE_ID;                     f += "\",";
+  f += "\"audio_peak\":";   f += lastAudioPeak;               f += ",";
+  f += "\"accel_g\":";      f += String(accelG, 3);           f += ",";
+  f += "\"accel_delta\":";  f += String(accelDelta, 3);       f += ",";
+  f += "\"quake\":";        f += (quake ? "true" : "false");  f += ",";
+  f += "\"water_raw\":";    f += waterRaw;                    f += ",";
+  f += "\"water_alert\":";  f += (waterAlert ? "true" : "false"); f += ",";
+  f += "\"smoke_raw\":";    f += smokeRaw;                    f += ",";
+  f += "\"smoke_alert\":";  f += (smokeAlert ? "true" : "false");
+  f += "}]";
+  webSocket.sendTXT(f);
+}
+
 void checkSensors() {
+  bool graceOver = (millis() - startupTime > STARTUP_GRACE_MS);
+
   // ── Accelerometer ──
   float accelMag = getAccel();
+  float delta    = 0.0f;
+  bool  quake    = false;
   if (!baselineInit) {
     accelBaseline = accelMag;
     baselineInit  = true;
     Serial.printf("[MASTER] Accel baseline initialized: %.3f g\n", accelBaseline);
   } else {
     accelBaseline = EMA_DECAY * accelBaseline + (1.0f - EMA_DECAY) * accelMag;
-    float delta = fabsf(accelMag - accelBaseline);
-    Serial.printf("[MASTER] Accel: %.3fg (Δ%.3f)\n", accelMag, delta);
-    if (delta > QUAKE_THRESHOLD && (millis() - startupTime > STARTUP_GRACE_MS)) {
-      alert("EARTHQUAKE DETECTED");
-    }
+    delta = fabsf(accelMag - accelBaseline);
+    quake = (delta > QUAKE_THRESHOLD) && graceOver;
+    Serial.printf("[MASTER] Accel: %.3fg (Δ%.3f)%s\n",
+                  accelMag, delta, quake ? "  *** QUAKE ***" : "");
+    if (quake) alert("EARTHQUAKE DETECTED");
   }
 
   // ── Water Level ──
-  int waterVal = analogRead(WATER_PIN);
-  Serial.printf("[MASTER] Water: %d\n", waterVal);
-  if (waterVal > WATER_THRESHOLD && (millis() - startupTime > STARTUP_GRACE_MS)) {
-    alert("WATER DETECTED");
-  }
+  int  waterVal   = analogRead(WATER_PIN);
+  bool waterAlert = (waterVal > WATER_THRESHOLD) && graceOver;
+  Serial.printf("[MASTER] Water: %d%s\n", waterVal, waterAlert ? "  *** FLOOD ***" : "");
+  if (waterAlert) alert("WATER DETECTED");
+
+  // ── Smoke (from SLAVE via UART) ──
+  bool smokeAlert = (lastSmokeVal > SMOKE_THRESHOLD) && graceOver;
+
+  // ── Push full telemetry frame to the dashboard ──
+  sendSensorData(accelMag, delta, quake, waterVal, waterAlert, lastSmokeVal, smokeAlert);
 }
 
 // ╔═══════════════════════════════════════════════════════════════════════════╗

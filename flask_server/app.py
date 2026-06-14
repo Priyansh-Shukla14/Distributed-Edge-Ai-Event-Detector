@@ -129,6 +129,52 @@ def on_ping_test(data):
     log.info("[PING TEST] Received from ESP32! data=%s", data)
 
 
+@socketio.on("sensor_data")
+def on_sensor_data(data: dict):
+    """
+    Receives non-audio sensor telemetry from an ESP32 node and
+    re-broadcasts it to all dashboard clients as "sensor_update".
+
+    Expected payload (all fields optional except node_id):
+        {
+            "node_id":     "node_1",
+            "audio_peak":  742,
+            "accel_g":     1.87,
+            "accel_delta": 1.62,
+            "quake":       true,
+            "water_raw":   0,
+            "water_alert": false,
+            "smoke_raw":   310,
+            "smoke_alert": false
+        }
+    """
+    node_id = data.get("node_id")
+    if not node_id or node_id not in buffers:
+        log.warning("Rejected sensor_data — unknown node_id: %s", node_id)
+        return {"status": "error", "reason": "unknown node_id"}
+
+    # Mark node online on every telemetry frame
+    upsert_node_status(node_id)
+
+    # Re-broadcast to dashboards
+    socketio.emit("sensor_update", data)
+
+    # Log alerts prominently
+    alerts = []
+    if data.get("quake"):       alerts.append("EARTHQUAKE")
+    if data.get("water_alert"): alerts.append("WATER")
+    if data.get("smoke_alert"): alerts.append("SMOKE")
+    if alerts:
+        log.info("[SENSOR ALERT] %s → %s  (accel %.2fg, water %s, smoke %s)",
+                 node_id, "+".join(alerts),
+                 float(data.get("accel_g", 0) or 0),
+                 data.get("water_raw", "—"), data.get("smoke_raw", "—"))
+    else:
+        log.debug("[SENSOR] %s telemetry ok", node_id)
+
+    return {"status": "received", "node_id": node_id}
+
+
 @socketio.on("*")
 def catch_all(event, *args):
     log.info("[CATCH-ALL] event=%s  data_preview=%s", event, str(args)[:200])
