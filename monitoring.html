@@ -281,6 +281,109 @@
             background-color: var(--accent-orange);
             box-shadow: 0 0 10px rgba(245,158,11,0.4); animation: blink 1s infinite;
         }
+
+        /* ── Critical Sensor Alert Banner ─────────────── */
+        .sensor-alert-banner {
+            display: none;            /* shown via .active */
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            max-width: 700px;
+            margin: 0 auto 25px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-family: var(--font-heading);
+            font-size: 1rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            background: rgba(255, 0, 60, 0.15);
+            border: 1.5px solid var(--neon-red);
+            color: var(--neon-red);
+            box-shadow: 0 0 25px rgba(255, 0, 60, 0.4);
+            position: relative;
+        }
+        .sensor-alert-banner.active {
+            display: flex;
+            animation: bannerFlash 1s ease-in-out infinite;
+        }
+        /* Water uses blue, smoke uses orange */
+        .sensor-alert-banner.alert-water {
+            background: rgba(0, 170, 255, 0.15);
+            border-color: #00aaff;
+            color: #4fc3ff;
+            box-shadow: 0 0 25px rgba(0, 170, 255, 0.4);
+        }
+        .sensor-alert-banner.alert-smoke {
+            background: rgba(255, 170, 0, 0.15);
+            border-color: var(--neon-orange);
+            color: var(--neon-orange);
+            box-shadow: 0 0 25px rgba(255, 170, 0, 0.4);
+        }
+        .sensor-alert-banner .alert-icon { font-size: 1.5rem; }
+        .sensor-alert-banner .alert-dismiss {
+            position: absolute;
+            right: 16px;
+            cursor: pointer;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+        .sensor-alert-banner .alert-dismiss:hover { opacity: 1; }
+        @keyframes bannerFlash {
+            0%, 100% { box-shadow: 0 0 25px rgba(255, 0, 60, 0.4); }
+            50%      { box-shadow: 0 0 40px rgba(255, 0, 60, 0.8); }
+        }
+
+        /* ── Sensor Telemetry Grid (inside node cards) ── */
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .sensor-tile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.3s ease;
+        }
+        .sensor-tile .sensor-icon { font-size: 1.3rem; line-height: 1; }
+        .sensor-tile .sensor-name {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .sensor-tile .sensor-value {
+            font-family: var(--font-heading);
+            font-size: 0.95rem;
+            color: var(--neon-blue);
+            margin-top: 2px;
+        }
+        /* Triggered (alert) state — red glow + flash */
+        .sensor-tile.alert {
+            background: rgba(255, 0, 60, 0.12);
+            border-color: var(--neon-red);
+            box-shadow: 0 0 14px rgba(255, 0, 60, 0.35);
+            animation: tileFlash 0.9s ease-in-out infinite;
+        }
+        .sensor-tile.alert .sensor-value { color: var(--neon-red); }
+        .sensor-tile.alert-water {
+            background: rgba(0, 170, 255, 0.12);
+            border-color: #00aaff;
+            box-shadow: 0 0 14px rgba(0, 170, 255, 0.35);
+            animation: tileFlash 0.9s ease-in-out infinite;
+        }
+        .sensor-tile.alert-water .sensor-value { color: #4fc3ff; }
+        @keyframes tileFlash {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.65; }
+        }
     </style>
 </head>
 <body>
@@ -304,6 +407,13 @@
     <!-- ── Stats Overview ─────────────────────────── -->
     <section id="monitoring" class="section container">
         <h2 class="section-title">Live Dashboard</h2>
+
+        <!-- ── Critical Sensor Alert Banner (hidden until triggered) ── -->
+        <div class="sensor-alert-banner" id="sensor-alert-banner">
+            <span class="alert-icon" id="alert-banner-icon">⚠️</span>
+            <span class="alert-text" id="alert-banner-text">EARTHQUAKE DETECTED</span>
+            <span class="alert-dismiss" id="alert-banner-dismiss">✕</span>
+        </div>
 
         <!-- Connection pills -->
         <div class="connection-pills">
@@ -360,6 +470,38 @@
                     <div class="w-bar" style="animation-delay:0.45s"></div>
                     <div class="w-bar" style="animation-delay:0.6s"></div>
                 </div>
+
+                <!-- ── Sensor telemetry grid ── -->
+                <div class="sensor-grid">
+                    <div class="sensor-tile" id="sensor-audio-node_1">
+                        <div class="sensor-icon">🔊</div>
+                        <div class="sensor-info">
+                            <div class="sensor-name">Audio Peak</div>
+                            <div class="sensor-value" id="audio-val-node_1">—</div>
+                        </div>
+                    </div>
+                    <div class="sensor-tile" id="sensor-quake-node_1">
+                        <div class="sensor-icon">📳</div>
+                        <div class="sensor-info">
+                            <div class="sensor-name">Seismic</div>
+                            <div class="sensor-value" id="quake-val-node_1">—</div>
+                        </div>
+                    </div>
+                    <div class="sensor-tile" id="sensor-water-node_1">
+                        <div class="sensor-icon">💧</div>
+                        <div class="sensor-info">
+                            <div class="sensor-name">Water Level</div>
+                            <div class="sensor-value" id="water-val-node_1">—</div>
+                        </div>
+                    </div>
+                    <div class="sensor-tile" id="sensor-smoke-node_1">
+                        <div class="sensor-icon">💨</div>
+                        <div class="sensor-info">
+                            <div class="sensor-name">Smoke</div>
+                            <div class="sensor-value" id="smoke-val-node_1">—</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Node 2 -->
@@ -381,6 +523,38 @@
                     <div class="w-bar" style="animation-delay:0.3s"></div>
                     <div class="w-bar" style="animation-delay:0.45s"></div>
                     <div class="w-bar" style="animation-delay:0.6s"></div>
+                </div>
+
+                <!-- ── Sensor telemetry grid ── -->
+                <div class="sensor-grid">
+                    <div class="sensor-tile" id="sensor-audio-node_2">
+                        <div class="sensor-icon">🔊</div>
+                        <div class="sensor-info">
+                            <div class="sensor-name">Audio Peak</div>
+                            <div class="sensor-value" id="audio-val-node_2">—</div>
+                        </div>
+                    </div>
+                    <div class="sensor-tile" id="sensor-quake-node_2">
+                        <div class="sensor-icon">📳</div>
+                        <div class="sensor-info">
+                            <div class="sensor-name">Seismic</div>
+                            <div class="sensor-value" id="quake-val-node_2">—</div>
+                        </div>
+                    </div>
+                    <div class="sensor-tile" id="sensor-water-node_2">
+                        <div class="sensor-icon">💧</div>
+                        <div class="sensor-info">
+                            <div class="sensor-name">Water Level</div>
+                            <div class="sensor-value" id="water-val-node_2">—</div>
+                        </div>
+                    </div>
+                    <div class="sensor-tile" id="sensor-smoke-node_2">
+                        <div class="sensor-icon">💨</div>
+                        <div class="sensor-info">
+                            <div class="sensor-name">Smoke</div>
+                            <div class="sensor-value" id="smoke-val-node_2">—</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -422,7 +596,7 @@
 
     <!-- ── Scripts ── -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.2/dist/socket.io.min.js"></script>
     <script src="config.js"></script>
     <script src="script.js"></script>
 </body>

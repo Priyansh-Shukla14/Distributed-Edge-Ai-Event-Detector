@@ -30,6 +30,9 @@ function getEventIcon(type) {
     siren:               '🚨',
     dog:                 '🐕',
     background:          '🔇',
+    // Sensor-triggered types
+    flood:               '🌊',
+    earthquake:          '📳',
     // Legacy types (MQTT pipeline)
     explosion:           '💥',
     vehicle_crash:       '🚗',
@@ -51,6 +54,9 @@ function getEventLabel(type) {
     siren:               'Siren',
     dog:                 'Dog',
     background:          'Ambient',
+    // Sensor-triggered types
+    flood:               'Flood',
+    earthquake:          'Earthquake',
     // Legacy types
     explosion:           'Explosion',
     vehicle_crash:       'Vehicle Crash',
@@ -427,6 +433,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // ═══════════════════════════════════════════════
+  //  SENSOR TELEMETRY — earthquake / water / smoke
+  // ═══════════════════════════════════════════════
+
+  const alertBanner       = document.getElementById('sensor-alert-banner');
+  const alertBannerIcon   = document.getElementById('alert-banner-icon');
+  const alertBannerText   = document.getElementById('alert-banner-text');
+  const alertBannerHideEl = document.getElementById('alert-banner-dismiss');
+  let alertBannerTimer = null;
+
+  if (alertBannerHideEl) {
+    alertBannerHideEl.addEventListener('click', () => {
+      if (alertBanner) alertBanner.classList.remove('active');
+    });
+  }
+
+  /** Show the big banner. type: 'quake' | 'water' | 'smoke' */
+  function showAlertBanner(type, nodeId) {
+    if (!alertBanner) return;
+    const cfg = {
+      quake: { icon: '⚠️', text: `EARTHQUAKE DETECTED — ${nodeId}`, cls: '' },
+      water: { icon: '💧', text: `WATER LEVEL CRITICAL — ${nodeId}`, cls: 'alert-water' },
+      smoke: { icon: '🔥', text: `SMOKE DETECTED — ${nodeId}`, cls: 'alert-smoke' },
+    }[type];
+    if (!cfg) return;
+
+    alertBanner.className = 'sensor-alert-banner active ' + cfg.cls;
+    if (alertBannerIcon) alertBannerIcon.textContent = cfg.icon;
+    if (alertBannerText) alertBannerText.textContent = cfg.text;
+
+    // Auto-hide after 10s of no repeat
+    if (alertBannerTimer) clearTimeout(alertBannerTimer);
+    alertBannerTimer = setTimeout(() => alertBanner.classList.remove('active'), 10000);
+
+    playAlertSound();
+  }
+
+  /** Update the per-node sensor tiles from a sensor_update payload. */
+  function updateSensorTiles(s) {
+    const nid = s.node_id;
+    if (!nid) return;
+
+    const set = (id, txt) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = txt;
+    };
+    const setAlert = (tileId, on, waterStyle) => {
+      const tile = document.getElementById(tileId);
+      if (!tile) return;
+      tile.classList.remove('alert', 'alert-water');
+      if (on) tile.classList.add(waterStyle ? 'alert-water' : 'alert');
+    };
+
+    // ── Audio peak ──
+    if (s.audio_peak !== undefined) set(`audio-val-${nid}`, s.audio_peak);
+
+    // ── Seismic (accelerometer) ──
+    if (s.accel_g !== undefined) {
+      const d = (s.accel_delta !== undefined) ? ` (Δ${Number(s.accel_delta).toFixed(2)})` : '';
+      set(`quake-val-${nid}`, `${Number(s.accel_g).toFixed(2)}g${d}`);
+    }
+    setAlert(`sensor-quake-${nid}`, !!s.quake, false);
+    if (s.quake) showAlertBanner('quake', nid);
+
+    // ── Water level ──
+    if (s.water_raw !== undefined) {
+      set(`water-val-${nid}`, s.water_alert ? `${s.water_raw} ⚠` : s.water_raw);
+    }
+    setAlert(`sensor-water-${nid}`, !!s.water_alert, true);
+    if (s.water_alert) showAlertBanner('water', nid);
+
+    // ── Smoke ──
+    if (s.smoke_raw !== undefined) {
+      set(`smoke-val-${nid}`, s.smoke_alert ? `${s.smoke_raw} ⚠` : s.smoke_raw);
+    }
+    setAlert(`sensor-smoke-${nid}`, !!s.smoke_alert, false);
+    if (s.smoke_alert) showAlertBanner('smoke', nid);
+  }
+
+
+  // ═══════════════════════════════════════════════
   //  FLASK SOCKET.IO — live detection events
   // ═══════════════════════════════════════════════
 
@@ -506,6 +592,13 @@ document.addEventListener('DOMContentLoaded', () => {
       while (rows.length > 150) {
         rows[rows.length - 1].remove();
       }
+    });
+
+    // ── Sensor telemetry (earthquake / water / smoke / audio) ──
+    flaskSocket.on('sensor_update', (payload) => {
+      console.log('[Flask] sensor_update:', payload);
+      resetSyncCounter();
+      updateSensorTiles(payload);
     });
   } else {
     console.warn('[Flask] socket.io client not loaded — Flask bridge disabled');

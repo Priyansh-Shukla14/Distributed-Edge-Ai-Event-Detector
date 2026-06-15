@@ -101,6 +101,7 @@ function init() {
       confidence,
       alert_priority,
       stored,
+      _flask_persisted,
     } = payload;
 
     if (stored) {
@@ -110,13 +111,21 @@ function init() {
         `(${confidence.toFixed(2)}) [${(alert_priority || 'none').toUpperCase()}]`
       );
 
-      try {
-        await Promise.all([
-          insertEvent(payload),
-          upsertNodeStatus(node_id),
-        ]);
-      } catch (err) {
-        console.error('[Flask Bridge] ✖  Supabase write error:', err.message);
+      // Skip re-inserting if Flask already persisted this event
+      // (sensor alerts like flood/earthquake are inserted by Flask directly)
+      if (_flask_persisted) {
+        console.log(
+          `[Flask Bridge] ↳  Skipping Supabase write — already persisted by Flask`
+        );
+      } else {
+        try {
+          await Promise.all([
+            insertEvent(payload),
+            upsertNodeStatus(node_id),
+          ]);
+        } catch (err) {
+          console.error('[Flask Bridge] ✖  Supabase write error:', err.message);
+        }
       }
     } else {
       // Low confidence or background → live feed only

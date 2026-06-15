@@ -22,6 +22,15 @@ const VALID_EVENT_TYPES = new Set([
   'vehicle_crash',
   'abnormal_industrial',
   'background_noise',
+  // Sensor-triggered types
+  'flood',
+  'earthquake',
+  // Flask ML pipeline types
+  'gunshots',
+  'scream',
+  'siren',
+  'dog',
+  'background',
 ]);
 
 // ── Helpers ──────────────────────────────────────────────
